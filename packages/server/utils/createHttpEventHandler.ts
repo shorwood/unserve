@@ -41,8 +41,20 @@ export function createHttpEventHandler<T extends HttpRoute<HttpRouteOptions, unk
       throw error
     }
 
+    // --- Create an abort controller that can be used to cancel the request.
+    const abortController = new AbortController()
+    const abortSignal = abortController.signal
+    event.node.req.on('aborted', () => abortController.abort())
+
     // --- Call the handler with the context and return the data.
-    const response = await route.handler({ event, body, parameters, query, formData })
+    const response = await route.handler({
+      event,
+      body,
+      parameters,
+      query,
+      formData,
+      abortSignal,
+    })
 
     // --- If the response is undefined, return null with a 204 status code
     // --- so client does not attempt to parse it.

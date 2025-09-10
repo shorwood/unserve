@@ -12,6 +12,7 @@ export interface HttpRouteContext<T extends HttpRouteOptions> {
   query: T extends HttpRouteOptions<any, any, infer U> ? U : never
   formData: T extends HttpRouteOptions<any, any, any, infer U> ? U : never
   parameters: T extends HttpRouteOptions<any, any, any, any, infer U> ? U : never
+  abortSignal: AbortSignal
 }
 
 export interface HttpRouteOptions<

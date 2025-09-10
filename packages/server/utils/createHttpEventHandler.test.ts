@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import type { H3Event } from 'h3'
 import { isEventHandler } from 'h3'
 import { createHttpRoute } from '../createHttpRoute'
@@ -20,7 +21,7 @@ describe('createHttpEventHandler', () => {
       const eventHandler = createHttpEventHandler(route)
       const event = createTestEvent()
       await eventHandler(event)
-      expect(handler).toHaveBeenCalledWith({ event })
+      expect(handler).toHaveBeenCalledWith({ event, abortSignal: expect.any(AbortSignal) })
     })
 
     it('should return a function that returns a promise', () => {
@@ -51,7 +52,7 @@ describe('createHttpEventHandler', () => {
     it('should call the handler with parsed parameters', async() => {
       const { event, eventHandler, handler } = createHandler()
       await eventHandler(event)
-      expect(handler).toHaveBeenCalledWith({ event, parameters: { id: '123' } })
+      expect(handler).toHaveBeenCalledWith({ event, parameters: { id: '123' }, abortSignal: expect.any(AbortSignal) })
     })
 
     it('should throw an error if parseParameters fails', async() => {
@@ -89,7 +90,7 @@ describe('createHttpEventHandler', () => {
     it('should call the handler with parsed query', async() => {
       const { event, eventHandler, handler } = createHandler()
       await eventHandler(event)
-      expect(handler).toHaveBeenCalledWith({ event, query: { foo: 'bar', baz: 'qux' } })
+      expect(handler).toHaveBeenCalledWith({ event, query: { foo: 'bar', baz: 'qux' }, abortSignal: expect.any(AbortSignal) })
     })
 
     it('should throw an error if parseQuery fails', async() => {
@@ -127,7 +128,7 @@ describe('createHttpEventHandler', () => {
     it('should call the handler with parsed body', async() => {
       const { event, eventHandler, handler } = createHandler()
       await eventHandler(event)
-      expect(handler).toHaveBeenCalledWith({ event, body: { key: 'value' } })
+      expect(handler).toHaveBeenCalledWith({ event, body: { key: 'value' }, abortSignal: expect.any(AbortSignal) })
     })
 
     it('should throw an error if parseBody fails', async() => {
@@ -169,7 +170,7 @@ describe('createHttpEventHandler', () => {
       await eventHandler(event)
       const expectedFormData = new FormData()
       expectedFormData.append('key', 'value')
-      expect(handler).toHaveBeenCalledWith({ event, formData: expectedFormData })
+      expect(handler).toHaveBeenCalledWith({ event, formData: expectedFormData, abortSignal: expect.any(AbortSignal) })
     })
 
     it('should throw an error if parseFormData fails', async() => {
@@ -186,6 +187,40 @@ describe('createHttpEventHandler', () => {
       await eventHandler(event).catch(() => {}) as unknown
       expect(event.node.res.statusCode).toBe(400)
       expect(event.node.res.statusMessage).toBe('Bad Request')
+    })
+  })
+
+  describe('abortSignal', () => {
+    it('should trigger the abort event if the request is aborted', async() => {
+      const callback = vi.fn() as () => void
+      const handler = vi.fn(({ abortSignal }: { abortSignal: AbortSignal }) => {
+        abortSignal.addEventListener('abort', () => callback())
+        return new Promise(resolve => setTimeout(() => resolve('done'), 50))
+      })
+
+      const route = createHttpRoute({ name: 'GET /' }, handler)
+      const eventHandler = createHttpEventHandler(route)
+      const event = createTestEvent()
+
+      const promise = eventHandler(event) as Promise<unknown>
+      event.node.req.emit('aborted')
+      await promise
+      expect(callback).toHaveBeenCalled()
+    })
+
+    it('should not trigger the abort event if the request is not aborted', async() => {
+      const callback = vi.fn() as () => void
+      const handler = vi.fn(({ abortSignal }: { abortSignal: AbortSignal }) => {
+        abortSignal.addEventListener('abort', () => callback())
+        return new Promise(resolve => setTimeout(() => resolve('done'), 50))
+      })
+
+      const route = createHttpRoute({ name: 'GET /' }, handler)
+      const eventHandler = createHttpEventHandler(route)
+      const event = createTestEvent()
+
+      await eventHandler(event)
+      expect(callback).not.toHaveBeenCalled()
     })
   })
 
