@@ -58,7 +58,7 @@ export function createHttpEventHandler<T extends HttpRoute<HttpRouteOptions, unk
 
     // --- If the response is undefined, return null with a 204 status code
     // --- so client does not attempt to parse it.
-    if (response === undefined) {
+    if (response === undefined && !event.node.res.headersSent) {
       setResponseStatus(event, 204)
       removeResponseHeader(event, 'Content-Type')
       // eslint-disable-next-line unicorn/no-null
