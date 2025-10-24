@@ -148,12 +148,13 @@ export class Application<T extends ModuleLike = ModuleLike> {
    * from the application context. It will throw an error if the module is not found.
    *
    * @param module The constructor of the module to get.
+   * @param allowUninitialized Whether to allow uninitialized modules to be returned.
    * @returns The module instance.
    */
-  getModule<T extends Constructor>(module: T): InstanceType<T> {
+  getModule<T extends Constructor>(module: T, allowUninitialized = false): InstanceType<T> {
     const result = this.modules.find(m => m instanceof module)
     if (!result) throw new Error(`Module with constructor "${module.name}" not found`)
-    if (result.isInitialized === false) throw new Error(`Module "${module.name}" was found but not initialized`)
+    if (!allowUninitialized && result.isInitialized === false) throw new Error(`Module "${module.name}" was found but not initialized`)
     return result as InstanceType<T>
   }
 

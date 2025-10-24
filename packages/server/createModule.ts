@@ -91,10 +91,11 @@ export class ModuleBase {
    * from the application context. It will throw an error if the module is not found.
    *
    * @param module The constructor of the module to get.
+   * @param allowUninitialized Whether to allow uninitialized modules to be returned.
    * @returns The module instance.
    */
-  getModule<T extends Constructor>(module: T): InstanceType<T> {
-    return this.getApplication().getModule(module)
+  getModule<T extends Constructor>(module: T, allowUninitialized = false): InstanceType<T> {
+    return this.getApplication().getModule(module, allowUninitialized)
   }
 
   /**
